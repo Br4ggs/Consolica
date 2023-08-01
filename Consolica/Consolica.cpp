@@ -23,6 +23,18 @@ private:
 
     std::wstring map;
     olcSprite* spriteWall;
+    olcSprite* spriteLamp;
+
+    float* depthBuffer = nullptr;
+
+    struct Object
+    {
+        float x;
+        float y;
+        olcSprite* sprite;
+    };
+
+    std::list<Object> listObjects;
 
 protected:
     virtual bool OnUserCreate()
@@ -45,6 +57,14 @@ protected:
         map += L"################";
 
         spriteWall = new olcSprite(L"../Sprites/fps_wall1.spr");
+        spriteLamp = new olcSprite(L"../Sprites/fps_lamp1.spr");
+
+        depthBuffer = new float[ScreenWidth()];
+
+        listObjects = {
+            {7, 7, spriteLamp}
+        };
+
         return true;
     }
 
@@ -215,6 +235,9 @@ protected:
             int ceiling = (float)(ScreenHeight() / 2.0) - ScreenHeight() / ((float)distanceToWall);
             int floor = ScreenHeight() - ceiling;
 
+            //update depth buffer
+            depthBuffer[x] = distanceToWall;
+
             //short shade = ' ';
 
             //if (distanceToWall <= maxDepth / 4.0f)      shade = 0x2588; //very close
@@ -262,6 +285,61 @@ protected:
 
                     ////screen[y * ScreenWidth() + x] = shade;
                     //Draw(x, y, shade);
+                }
+            }
+        }
+        //...
+
+        //Update & Draw Objects
+        for (auto& object : listObjects)
+        {
+            //is object within distance?
+            float vecX = object.x - playerX;
+            float vecY = object.y - playerY;
+            float distanceFromPlayer = sqrt(vecX * vecX + vecY * vecY);
+
+            float eyeX = sinf(playerA);
+            float eyeY = cosf(playerA);
+            float objectAngle = atan2f(eyeY, eyeX) - atan2f(vecY, vecX);
+            if (objectAngle < -3.14159f) //make sure angle lies between 0 and +-2*pi?
+            {
+                objectAngle += 2.0f * 3.14159f;
+            }
+            if (objectAngle > 3.14159f)
+            {
+                objectAngle -= 2.0f * 3.14159f;
+            }
+
+            bool inPlayerFOV = fabs(objectAngle) < FOV / 2.0f;
+
+            if (inPlayerFOV && distanceFromPlayer >= 0.5f && distanceFromPlayer < maxDepth)
+            {
+                float objectCeiling = (float)(ScreenHeight() / 2.0) - ScreenHeight() / ((float)distanceFromPlayer);
+                float objectFloor = ScreenHeight() - objectCeiling;
+                float objectHeight = objectFloor - objectCeiling;
+                float objectAspectRatio = (float)object.sprite->nHeight / (float)object.sprite->nWidth;
+                float objectWidth = objectHeight / objectAspectRatio;
+
+                float middleOfObject = (0.5f * (objectAngle / (FOV / 2.0f)) + 0.5f) * (float)ScreenWidth(); //?
+
+                for (float x = 0; x < objectWidth; x++)
+                {
+                    for (float y = 0; y < objectHeight; y++)
+                    {
+                        float sampleX = x / objectWidth;
+                        float sampleY = y / objectHeight;
+
+                        wchar_t c = object.sprite->SampleGlyph(sampleX, sampleY);
+                        int objectColumn = (int)(middleOfObject + x - (objectWidth / 2.0f));
+                        if (objectColumn >= 0 && objectColumn < ScreenWidth())
+                        {
+                            if (c != L' ' && depthBuffer[objectColumn] >= distanceFromPlayer)
+                            {
+                                Draw(objectColumn, objectCeiling + y, c, object.sprite->SampleColour(sampleX, sampleY));
+                                depthBuffer[objectColumn] = distanceFromPlayer;
+                            }
+                        }
+                    }
                 }
             }
         }

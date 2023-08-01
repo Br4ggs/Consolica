@@ -24,6 +24,7 @@ private:
     std::wstring map;
     olcSprite* spriteWall;
     olcSprite* spriteLamp;
+    olcSprite* spriteFireBall;
 
     float* depthBuffer = nullptr;
 
@@ -31,6 +32,9 @@ private:
     {
         float x;
         float y;
+        float velocityX;
+        float velocityY;
+        bool remove;
         olcSprite* sprite;
     };
 
@@ -58,11 +62,12 @@ protected:
 
         spriteWall = new olcSprite(L"../Sprites/fps_wall1.spr");
         spriteLamp = new olcSprite(L"../Sprites/fps_lamp1.spr");
+        spriteFireBall = new olcSprite(L"../Sprites/fps_fireball1.spr");
 
         depthBuffer = new float[ScreenWidth()];
 
         listObjects = {
-            {7, 7, spriteLamp}
+            {7, 7, 0.0f, 0.0f, false, spriteLamp}
         };
 
         return true;
@@ -127,6 +132,23 @@ protected:
                 playerX += cosf(playerA) * walkSpeed * fElapsedTime;
                 playerY -= sinf(playerA) * walkSpeed * fElapsedTime;
             }
+        }
+        //...
+
+        //fire bullets
+        if (m_keys[VK_SPACE].bReleased)
+        {
+            Object o;
+            o.x = playerX;
+            o.y = playerY;
+
+            float noise = (((float)rand() / (float)RAND_MAX) - 0.5f) * 0.1f;
+            o.velocityX = sinf(playerA + noise) * 8.0f;
+            o.velocityY = cosf(playerA + noise) * 8.0f;
+
+            o.sprite = spriteFireBall;
+            o.remove = false;
+            listObjects.push_back(o);
         }
         //...
 
@@ -293,6 +315,16 @@ protected:
         //Update & Draw Objects
         for (auto& object : listObjects)
         {
+            //update object physics
+            object.x += object.velocityX * fElapsedTime;
+            object.y += object.velocityY * fElapsedTime;
+
+            //check if object is inside wall, if so, set flag for removal
+            if (map.c_str()[(int)object.x * mapWidth + (int)object.y] == '#')
+            {
+                object.remove = true;
+            }
+
             //is object within distance?
             float vecX = object.x - playerX;
             float vecY = object.y - playerY;
@@ -344,6 +376,9 @@ protected:
             }
         }
         //...
+
+        //remove dead objects from object list
+        listObjects.remove_if([](Object& o) {return o.remove; });
 
         //display map
         for (int mx = 0; mx < mapWidth; mx++)

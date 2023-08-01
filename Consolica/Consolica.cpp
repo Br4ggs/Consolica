@@ -6,6 +6,14 @@
 
 #include "olcConsoleGameEngine.h"
 
+//TODO:
+//-fix fisheye effect
+//-fix raycasting technique
+//-research some of the less understandable math in program
+//-floor/ceiling texturing
+//-mouse input
+//-update sprite code to something more generic
+
 class OneLoneCoder_UltimateFPS : public olcConsoleGameEngine
 {
 private:
@@ -172,7 +180,7 @@ protected:
             //"march" forward from ray origin untill we hit a wall
             while (!hitWall && distanceToWall < maxDepth)
             {
-                distanceToWall += 0.01f;
+                distanceToWall += 0.05f;
 
                 //"sample" a position by taking the player pos + the raycast vector
                 int tileX = (int)(playerX + vectorX * distanceToWall);
@@ -214,40 +222,6 @@ protected:
                         {
                             sampleX = testPointY - (float)tileY;
                         }
-
-                        ////tile boundary check
-                        //std::vector<std::pair<float, float>> distanceDot;
-
-                        //for (int tx = 0; tx < 2; tx++)
-                        //{
-                        //    for (int ty = 0; ty < 2; ty++)
-                        //    {
-                        //        float vy = (float)tileY + ty - playerY;
-                        //        float vx = (float)tileX + tx - playerX;
-                        //        float magnitude = sqrt(vx * vx + vy * vy);
-                        //        // a_x * b_x + a_y + b_y, keep in mind we use unit vectors
-                        //        float dot = (vectorX * vx / magnitude) + (vectorY * vy / magnitude);
-                        //        distanceDot.push_back(std::make_pair(magnitude, dot));
-                        //    }
-                        //}
-
-                        //std::sort(distanceDot.begin(), distanceDot.end(), [](const std::pair<float, float>& left, const std::pair<float, float>& right) {return left.first < right.first; });
-
-                        ////the dot product is already normalized so, cos(o) = a . b,
-                        ////meaning to get the angle we simply take the arccos of the dot product
-                        //float bound = 0.01f;
-                        //if (acos(distanceDot.at(0).second) < bound)
-                        //{
-                        //    boundary = true;
-                        //}
-                        //if (acos(distanceDot.at(1).second) < bound)
-                        //{
-                        //    boundary = true;
-                        //}
-                        ////if (acos(distanceDot.at(2).second) < bound)
-                        ////{
-                        ////    boundary = true;
-                        ////}
                     }
                 }
             }
@@ -260,22 +234,11 @@ protected:
             //update depth buffer
             depthBuffer[x] = distanceToWall;
 
-            //short shade = ' ';
-
-            //if (distanceToWall <= maxDepth / 4.0f)      shade = 0x2588; //very close
-            //else if (distanceToWall <= maxDepth / 3.0f) shade = 0x2593;
-            //else if (distanceToWall <= maxDepth / 2.0f) shade = 0x2592;
-            //else if (distanceToWall < maxDepth)         shade = 0x2591;
-            //else                                        shade = ' ';    //too far away
-
-            //if (boundary)                               shade = ' ';
-
             for (int y = 0; y < ScreenHeight(); y++)
             {
 
                 if (y < ceiling) //ceiling
                 {
-                    //screen[y * ScreenWidth() + x] = ' ';
                     Draw(x, y, L' ');
                 }
                 else if (y >= ceiling && y <= floor) //wall
@@ -284,8 +247,6 @@ protected:
                     {
                         float sampleY = ((float)y - ceiling) / ((float)floor - (float)ceiling);
                         Draw(x, y, spriteWall->SampleGlyph(sampleX, sampleY), spriteWall->SampleColour(sampleX, sampleY));
-                        //screen[y * ScreenWidth() + x] = shade;
-                        //Draw(x, y, shade);
                     }
                     else
                     {
@@ -295,18 +256,6 @@ protected:
                 else //ground
                 {
                     Draw(x, y, PIXEL_SOLID, FG_DARK_GREEN);
-
-                    ////floor shading (how does this work?)
-                    //float floorDistance = 1.0f - (((float)y - ScreenHeight() / 2.0f) / ((float)ScreenHeight() / 2.0f));
-
-                    //if (floorDistance < 0.25f) shade = '#';
-                    //else if (floorDistance < 0.5f)  shade = 'x';
-                    //else if (floorDistance < 0.75f) shade = '.';
-                    //else if (floorDistance < 0.9f)  shade = '-';
-                    //else                            shade = ' ';
-
-                    ////screen[y * ScreenWidth() + x] = shade;
-                    //Draw(x, y, shade);
                 }
             }
         }
@@ -385,11 +334,9 @@ protected:
         {
             for (int my = 0; my < mapHeight; my++)
             {
-                //screen[(my + 1) * ScreenWidth() + mx] = map[my * mapWidth + mx];
                 Draw(mx + 1, my + 1, map[my * mapWidth + mx]);
             }
         }
-        //screen[((int)playerY + 1) * screenWidth + (int)playerX] = 'P';
         Draw(1 + (int)playerX, 1 + (int)playerY, L'P');
         //...
 

@@ -161,6 +161,9 @@ protected:
         //...
 
         //rendering
+        float perpX = std::sinf(playerA + (3.14159f / 2));
+        float perpY = std::cosf(playerA + (3.14159f / 2));
+
         float rayStart = playerA - FOV / 2.0f;
         for (int x = 0; x < ScreenWidth(); x++)
         {
@@ -168,71 +171,161 @@ protected:
             float rayAngleOffset = ((float)x / (float)ScreenWidth()) * FOV;
             float rayAngle = rayStart + rayAngleOffset;
 
-            float distanceToWall = 0;
+            //float distanceToWall = 0;
             bool hitWall = false;
-            bool boundary = false;
 
+            //raycast vector
             float vectorX = std::sinf(rayAngle); //same here?
             float vectorY = std::cosf(rayAngle);
 
             float sampleX = 0.0f; //sample for texture
 
-            //"march" forward from ray origin untill we hit a wall
-            while (!hitWall && distanceToWall < maxDepth)
+            int mapX = (int)playerX;
+            int mapY = (int)playerY;
+
+            float deltaDistX = std::sqrtf(1 + (vectorY * vectorY) / (vectorX * vectorX));
+            float deltaDistY = std::sqrtf(1 + (vectorX * vectorX) / (vectorY * vectorY));
+
+            float sideDistX;
+            float sideDistY;
+
+            int stepX;
+            int stepY;
+
+            int side;
+
+            if (vectorX < 0)
             {
-                distanceToWall += 0.05f;
+                stepX = -1;
+                sideDistX = (playerX - std::floor(playerX)) * deltaDistX;
+            }
+            else
+            {
+                stepX = 1;
+                sideDistX = (std::floor(playerX) + 1 - playerX) * deltaDistX;
+            }
+            if (vectorY < 0)
+            {
+                stepY = -1;
+                sideDistY = (playerY - std::floor(playerY)) * deltaDistY;
+            }
+            else
+            {
+                stepY = 1;
+                sideDistY = (std::floor(playerY) + 1 - playerY) * deltaDistY;
+            }
 
-                //"sample" a position by taking the player pos + the raycast vector
-                int tileX = (int)(playerX + vectorX * distanceToWall);
-                int tileY = (int)(playerY + vectorY * distanceToWall);
+            float testPointX;
+            float testPointY;
 
-                //test to see sampled tile is not out of bounds
-                if (tileX < 0 || tileX >= mapWidth || tileY < 0 || tileY >= mapHeight)
+            //"march" forward from ray origin untill we hit a wall
+            while (!hitWall /*&& distanceToWall < maxDepth*/)
+            {
+                if (sideDistX < sideDistY)
                 {
-                    hitWall = true;
-                    distanceToWall = maxDepth;
+                    sideDistX += deltaDistX;
+                    mapX += stepX;
+                    side = 0;
                 }
                 else
                 {
-                    if (map[tileY * mapWidth + tileX] == '#') //we hit a wall
+                    sideDistY += deltaDistY;
+                    mapY += stepY;
+                    side = 1;
+                }
+
+                if (map[mapY * mapWidth + mapX] == '#')
+                {
+                    hitWall = true;
+                    float blockMidX = (float)mapX + 0.5f;
+                    float blockMidY = (float)mapY + 0.5f;
+
+                    //exact collision points
+                    testPointX = playerX + sideDistX;
+                    testPointY = playerY + sideDistY;
+
+                    float testAngle = atan2((testPointY - blockMidY), (testPointX - blockMidX)); //? needs some more research
+                    if (testAngle >= -3.14159f * 0.25f && testAngle < 3.14159f * 0.25f) //check which quadrant we landed in, depends which axis to use for sampling
                     {
-                        hitWall = true;
-
-                        float blockMidX = (float)tileX + 0.5f;
-                        float blockMidY = (float)tileY + 0.5f;
-
-                        //exact collision points
-                        float testPointX = playerX + vectorX * distanceToWall;
-                        float testPointY = playerY + vectorY * distanceToWall;
-
-                        float testAngle = atan2((testPointY - blockMidY), (testPointX - blockMidX)); //? needs some more research
-                        if (testAngle >= -3.14159f * 0.25f && testAngle < 3.14159f * 0.25f) //check which quadrant we landed in, depends which axis to use for sampling
-                        {
-                            sampleX = testPointY - (float)tileY;
-                        }
-                        if (testAngle >= 3.14159f * 0.25f && testAngle < 3.14159f * 0.75f)
-                        {
-                            sampleX = testPointX - (float)tileX;
-                        }
-                        if (testAngle < -3.14159f * 0.25f && testAngle >= -3.14159f * 0.75f)
-                        {
-                            sampleX = testPointX - (float)tileX;
-                        }
-                        if (testAngle >= 3.14159f * 0.75f || testAngle < -3.14159f * 0.75f)
-                        {
-                            sampleX = testPointY - (float)tileY;
-                        }
+                        sampleX = testPointY - (float)mapY;
+                    }
+                    if (testAngle >= 3.14159f * 0.25f && testAngle < 3.14159f * 0.75f)
+                    {
+                        sampleX = testPointX - (float)mapX;
+                    }
+                    if (testAngle < -3.14159f * 0.25f && testAngle >= -3.14159f * 0.75f)
+                    {
+                        sampleX = testPointX - (float)mapX;
+                    }
+                    if (testAngle >= 3.14159f * 0.75f || testAngle < -3.14159f * 0.75f)
+                    {
+                        sampleX = testPointY - (float)mapY;
                     }
                 }
+
+                //distanceToWall += 0.05f;
+
+                //"sample" a position by taking the player pos + the raycast vector
+                //int tileX = (int)(playerX + vectorX * distanceToWall);
+                //int tileY = (int)(playerY + vectorY * distanceToWall);
+
+                //test to see sampled tile is not out of bounds
+                //if (tileX < 0 || tileX >= mapWidth || tileY < 0 || tileY >= mapHeight)
+                //{
+                    //hitWall = true;
+                    //distanceToWall = maxDepth;
+                //}
+                //else
+                //{
+                    //if (map[tileY * mapWidth + tileX] == '#') //we hit a wall
+                    //{
+                        //hitWall = true;
+
+                        //float blockMidX = (float)tileX + 0.5f;
+                        //float blockMidY = (float)tileY + 0.5f;
+
+                        ////exact collision points
+                        //float testPointX = playerX + vectorX * distanceToWall;
+                        //float testPointY = playerY + vectorY * distanceToWall;
+
+                        //float testAngle = atan2((testPointY - blockMidY), (testPointX - blockMidX)); //? needs some more research
+                        //if (testAngle >= -3.14159f * 0.25f && testAngle < 3.14159f * 0.25f) //check which quadrant we landed in, depends which axis to use for sampling
+                        //{
+                        //    sampleX = testPointY - (float)tileY;
+                        //}
+                        //if (testAngle >= 3.14159f * 0.25f && testAngle < 3.14159f * 0.75f)
+                        //{
+                        //    sampleX = testPointX - (float)tileX;
+                        //}
+                        //if (testAngle < -3.14159f * 0.25f && testAngle >= -3.14159f * 0.75f)
+                        //{
+                        //    sampleX = testPointX - (float)tileX;
+                        //}
+                        //if (testAngle >= 3.14159f * 0.75f || testAngle < -3.14159f * 0.75f)
+                        //{
+                        //    sampleX = testPointY - (float)tileY;
+                        //}
+                    //}
+                //}
+            }
+
+            float perpWallDist;
+            if (side == 0)
+            {
+                perpWallDist = (sideDistX - deltaDistX);
+            }
+            else
+            {
+                perpWallDist = (sideDistY - deltaDistY);
             }
 
             //calculate the distance from the ceiling to the floor based on raycast distance
             //these points represent for this column where the wall starts, from ceiling to floor
-            int ceiling = (float)(ScreenHeight() / 2.0) - ScreenHeight() / ((float)distanceToWall);
+            int ceiling = (float)(ScreenHeight() / 2.0) - ScreenHeight() / ((float)perpWallDist);
             int floor = ScreenHeight() - ceiling;
 
             //update depth buffer
-            depthBuffer[x] = distanceToWall;
+            depthBuffer[x] = perpWallDist;
 
             for (int y = 0; y < ScreenHeight(); y++)
             {
@@ -243,10 +336,11 @@ protected:
                 }
                 else if (y >= ceiling && y <= floor) //wall
                 {
-                    if (distanceToWall < maxDepth)
+                    if (hitWall)
                     {
                         float sampleY = ((float)y - ceiling) / ((float)floor - (float)ceiling);
-                        Draw(x, y, spriteWall->SampleGlyph(sampleX, sampleY), spriteWall->SampleColour(sampleX, sampleY));
+                        //Draw(x, y, spriteWall->SampleGlyph(sampleX, sampleY), spriteWall->SampleColour(sampleX, sampleY));
+                        Draw(x, y, PIXEL_SOLID, 1);
                     }
                     else
                     {

@@ -7,8 +7,7 @@
 #include "olcConsoleGameEngine.h"
 
 //TODO:
-//-fix fisheye effect
-//-fix raycasting technique
+//-redo object rendering
 //-research some of the less understandable math in program
 //-floor/ceiling texturing
 //-mouse input
@@ -160,61 +159,67 @@ protected:
         //...
 
         //rendering
+        float dirX = std::sinf(playerA);
+        float dirY = std::cosf(playerA);
+
         float perpX = std::sinf(playerA + (3.14159f / 2));
         float perpY = std::cosf(playerA + (3.14159f / 2));
 
-        float rayStart = playerA - FOV / 2.0f;
+        //float rayStart = playerA - FOV / 2.0f;
         for (int x = 0; x < ScreenWidth(); x++)
         {
-            //this will range between 0 and FOV
-            float rayAngleOffset = ((float)x / (float)ScreenWidth()) * FOV;
-            float rayAngle = rayStart + rayAngleOffset;
+            float cameraX = 2 * x / (float)ScreenWidth() - 1;
 
-            bool hitWall = false;
+            //this will range between 0 and FOV
+            //float rayAngleOffset = ((float)x / (float)ScreenWidth()) * FOV;
+            //float rayAngle = rayStart + rayAngleOffset;
 
             //raycast vector
-            float vectorX = std::sinf(rayAngle); //same here?
-            float vectorY = std::cosf(rayAngle);
+            //float vectorX = std::sinf(rayAngle); //this causes fisheye lens, but the code under here does not. How?
+            //float vectorY = std::cosf(rayAngle);
+            float vectorX = dirX + perpX * cameraX;
+            float vectorY = dirY + perpY * cameraX;
 
             float sampleX = 0.0f; //sample for texture
 
+            //current map tile
             int mapX = (int)playerX;
             int mapY = (int)playerY;
 
-            float deltaDistX = std::sqrtf(1 + (vectorY * vectorY) / (vectorX * vectorX));
-            float deltaDistY = std::sqrtf(1 + (vectorX * vectorX) / (vectorY * vectorY));
-
+            //length of raycast from current position to next x or y side
             float sideDistX;
             float sideDistY;
+
+            //TODO: explanation
+            float deltaDistX = (vectorX == 0) ? 1e30 : std::abs(1 / vectorX);
+            float deltaDistY = (vectorY == 0) ? 1e30 : std::abs(1 / vectorY);
 
             int stepX;
             int stepY;
 
+            bool hitWall = false;
             int side;
 
             if (vectorX < 0)
             {
                 stepX = -1;
-                sideDistX = (playerX - std::floor(playerX)) * deltaDistX;
+                sideDistX = (playerX - mapX) * deltaDistX;
             }
             else
             {
                 stepX = 1;
-                sideDistX = (std::floor(playerX) + 1 - playerX) * deltaDistX;
+                sideDistX = (mapX + 1 - playerX) * deltaDistX;
             }
             if (vectorY < 0)
             {
                 stepY = -1;
-                sideDistY = (playerY - std::floor(playerY)) * deltaDistY;
+                sideDistY = (playerY - mapY) * deltaDistY;
             }
             else
             {
                 stepY = 1;
-                sideDistY = (std::floor(playerY) + 1 - playerY) * deltaDistY;
+                sideDistY = (mapY + 1 - playerY) * deltaDistY;
             }
-
-            float testPointX;
-            float testPointY;
 
             //"march" forward from ray origin untill we hit a wall
             while (!hitWall)
@@ -235,12 +240,13 @@ protected:
                 if (map[mapY * mapWidth + mapX] == '#')
                 {
                     hitWall = true;
+
                     float blockMidX = (float)mapX + 0.5f;
                     float blockMidY = (float)mapY + 0.5f;
 
                     //exact collision points
-                    testPointX = playerX + sideDistX;
-                    testPointY = playerY + sideDistY;
+                    float testPointX = playerX + sideDistX;
+                    float testPointY = playerY + sideDistY;
 
                     float testAngle = atan2((testPointY - blockMidY), (testPointX - blockMidX)); //? needs some more research
                     if (testAngle >= -3.14159f * 0.25f && testAngle < 3.14159f * 0.25f) //check which quadrant we landed in, depends which axis to use for sampling

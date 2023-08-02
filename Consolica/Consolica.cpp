@@ -162,8 +162,8 @@ protected:
         float dirX = std::sinf(playerA);
         float dirY = std::cosf(playerA);
 
-        float perpX = std::sinf(playerA + (3.14159f / 2));
-        float perpY = std::cosf(playerA + (3.14159f / 2));
+        float perpX = std::sinf(playerA + (3.14159f * 0.5f));
+        float perpY = std::cosf(playerA + (3.14159f * 0.5f));
 
         for (int x = 0; x < ScreenWidth(); x++)
         {
@@ -248,10 +248,10 @@ protected:
             int lineheight = (int)(ScreenHeight() / perpWallDist);
 
             //calculate lowest and highest pixel to fill in current stripe
-            int ceiling = -lineheight / 2 + ScreenHeight() / 2;
+            int ceiling = -lineheight * 0.5f + ScreenHeight() * 0.5f;
             if (ceiling < 0) ceiling = 0;
 
-            int floor = lineheight / 2 + ScreenHeight() / 2;
+            int floor = lineheight * 0.5f + ScreenHeight() * 0.5f;
             if (floor >= ScreenHeight()) floor = ScreenHeight() - 1;
 
             float wallX; //sample coordinate for texture, normalized
@@ -280,7 +280,7 @@ protected:
             depthBuffer[x] = perpWallDist;
 
             float step = 1.0f / lineheight;
-            float texPos = (ceiling - ScreenHeight() / 2 + lineheight / 2) * step;
+            float texPos = (ceiling - ScreenHeight() * 0.5f + lineheight * 0.5f) * step;
 
             for (int y = 0; y < ScreenHeight(); y++)
             {

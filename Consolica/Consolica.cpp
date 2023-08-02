@@ -13,12 +13,11 @@
 //-floor/ceiling texturing
 //-mouse input
 //-update sprite code to something more generic
+//-scale down tile size for a higher resolution map
 
 class OneLoneCoder_UltimateFPS : public olcConsoleGameEngine
 {
 private:
-    //int screenWidth = 120;
-    //int screenHeight = 40;
     int mapHeight = 16;
     int mapWidth = 16;
 
@@ -171,7 +170,6 @@ protected:
             float rayAngleOffset = ((float)x / (float)ScreenWidth()) * FOV;
             float rayAngle = rayStart + rayAngleOffset;
 
-            //float distanceToWall = 0;
             bool hitWall = false;
 
             //raycast vector
@@ -219,7 +217,7 @@ protected:
             float testPointY;
 
             //"march" forward from ray origin untill we hit a wall
-            while (!hitWall /*&& distanceToWall < maxDepth*/)
+            while (!hitWall)
             {
                 if (sideDistX < sideDistY)
                 {
@@ -262,51 +260,6 @@ protected:
                         sampleX = testPointY - (float)mapY;
                     }
                 }
-
-                //distanceToWall += 0.05f;
-
-                //"sample" a position by taking the player pos + the raycast vector
-                //int tileX = (int)(playerX + vectorX * distanceToWall);
-                //int tileY = (int)(playerY + vectorY * distanceToWall);
-
-                //test to see sampled tile is not out of bounds
-                //if (tileX < 0 || tileX >= mapWidth || tileY < 0 || tileY >= mapHeight)
-                //{
-                    //hitWall = true;
-                    //distanceToWall = maxDepth;
-                //}
-                //else
-                //{
-                    //if (map[tileY * mapWidth + tileX] == '#') //we hit a wall
-                    //{
-                        //hitWall = true;
-
-                        //float blockMidX = (float)tileX + 0.5f;
-                        //float blockMidY = (float)tileY + 0.5f;
-
-                        ////exact collision points
-                        //float testPointX = playerX + vectorX * distanceToWall;
-                        //float testPointY = playerY + vectorY * distanceToWall;
-
-                        //float testAngle = atan2((testPointY - blockMidY), (testPointX - blockMidX)); //? needs some more research
-                        //if (testAngle >= -3.14159f * 0.25f && testAngle < 3.14159f * 0.25f) //check which quadrant we landed in, depends which axis to use for sampling
-                        //{
-                        //    sampleX = testPointY - (float)tileY;
-                        //}
-                        //if (testAngle >= 3.14159f * 0.25f && testAngle < 3.14159f * 0.75f)
-                        //{
-                        //    sampleX = testPointX - (float)tileX;
-                        //}
-                        //if (testAngle < -3.14159f * 0.25f && testAngle >= -3.14159f * 0.75f)
-                        //{
-                        //    sampleX = testPointX - (float)tileX;
-                        //}
-                        //if (testAngle >= 3.14159f * 0.75f || testAngle < -3.14159f * 0.75f)
-                        //{
-                        //    sampleX = testPointY - (float)tileY;
-                        //}
-                    //}
-                //}
             }
 
             float perpWallDist;
@@ -319,10 +272,20 @@ protected:
                 perpWallDist = (sideDistY - deltaDistY);
             }
 
+            //calculate height of line
+            int lineheight = (int)(ScreenHeight() / perpWallDist);
+
+            //calculate lowest and highest pixel to fill in current stripe
+            int ceiling = -lineheight / 2 + ScreenHeight() / 2;
+            if (ceiling < 0) ceiling = 0;
+
+            int floor = lineheight / 2 + ScreenHeight() / 2;
+            if (floor >= ScreenHeight()) floor = ScreenHeight() - 1;
+
             //calculate the distance from the ceiling to the floor based on raycast distance
             //these points represent for this column where the wall starts, from ceiling to floor
-            int ceiling = (float)(ScreenHeight() / 2.0) - ScreenHeight() / ((float)perpWallDist);
-            int floor = ScreenHeight() - ceiling;
+            //int ceiling = (float)(ScreenHeight() / 2.0) - ScreenHeight() / ((float)perpWallDist);
+            //int floor = ScreenHeight() - ceiling;
 
             //update depth buffer
             depthBuffer[x] = perpWallDist;
@@ -336,11 +299,18 @@ protected:
                 }
                 else if (y >= ceiling && y <= floor) //wall
                 {
-                    if (hitWall)
+                    if (perpWallDist < maxDepth)
                     {
                         float sampleY = ((float)y - ceiling) / ((float)floor - (float)ceiling);
                         //Draw(x, y, spriteWall->SampleGlyph(sampleX, sampleY), spriteWall->SampleColour(sampleX, sampleY));
-                        Draw(x, y, PIXEL_SOLID, 1);
+                        if (side == 1)
+                        {
+                            Draw(x, y, PIXEL_SOLID, FG_BLUE);
+                        }
+                        else
+                        {
+                            Draw(x, y, PIXEL_SOLID, FG_DARK_BLUE);
+                        }
                     }
                     else
                     {

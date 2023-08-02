@@ -53,35 +53,33 @@ private:
 protected:
     virtual bool OnUserCreate()
     {
-        //HWND window;
-        //RECT rect;
+        HWND window;
+        RECT rect;
 
-        //window = GetActiveWindow();
+        window = GetForegroundWindow();
 
-        //GetClientRect(window, &rect);
+        GetClientRect(window, &rect);
 
-        //POINT ul;
-        //ul.x = rect.left;
-        //ul.y = rect.top;
+        POINT ul;
+        ul.x = rect.left;
+        ul.y = rect.top;
 
-        //POINT lr;
-        //lr.x = rect.right;
-        //lr.y = rect.bottom;
+        POINT lr;
+        lr.x = rect.right;
+        lr.y = rect.bottom;
 
-        //MapWindowPoints(window, HWND_DESKTOP, &ul, 1);
-        //MapWindowPoints(window, HWND_DESKTOP, &lr, 1);
+        MapWindowPoints(window, HWND_DESKTOP, &ul, 1);
+        MapWindowPoints(window, HWND_DESKTOP, &lr, 1);
 
-        //rect.left = ul.x;
-        //rect.top = ul.y;
+        rect.left = ul.x;
+        rect.top = ul.y;
 
-        //rect.right = lr.x;
-        //rect.bottom = lr.y;
+        rect.right = lr.x;
+        rect.bottom = lr.y;
 
         ////SetCapture(window);
 
-        //ClipCursor(&rect);
-
-        //SetCursorPos(50, 50);
+        ClipCursor(&rect);
 
         //ShowCursor(false);
 
@@ -179,17 +177,19 @@ protected:
         //exit
         if (m_keys[VK_ESCAPE].bPressed)
         {
+            ClipCursor(NULL);
             running = false;
         }
 
         //mouse input
-        //int delta = m_mousePosX - oldMousePos;
+        int delta = m_mousePosX - oldMousePos;
 
+        //SetCursorPos(50, 50);
         ////SetCursorPos(500, 500);
 
-        //oldMousePos = m_mousePosX;
-        //
-        //playerA += (float)delta * 0.01f;
+        oldMousePos = m_mousePosX;
+        
+        playerA += (float)delta * 0.01f;
         //...
 
         //fire bullets

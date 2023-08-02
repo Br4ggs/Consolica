@@ -7,11 +7,11 @@
 #include "olcConsoleGameEngine.h"
 
 //TODO:
+//-update sprite code to something more generic (use png image format)
+//-floor/ceiling texturing
 //-redo object rendering
 //-research some of the less understandable math in program
-//-floor/ceiling texturing
 //-mouse input
-//-update sprite code to something more generic
 //-scale down tile size for a higher resolution map
 
 class OneLoneCoder_UltimateFPS : public olcConsoleGameEngine
@@ -24,7 +24,7 @@ private:
     float playerY = 7.5f;
     float playerA = 0.0f;
     float FOV = 3.14159 / 4.0;
-    float maxDepth = 16.0f;
+    float maxDepth = 9.0f;
     float walkSpeed = 5.0f;
 
     std::wstring map;
@@ -165,18 +165,11 @@ protected:
         float perpX = std::sinf(playerA + (3.14159f / 2));
         float perpY = std::cosf(playerA + (3.14159f / 2));
 
-        //float rayStart = playerA - FOV / 2.0f;
         for (int x = 0; x < ScreenWidth(); x++)
         {
             float cameraX = 2 * x / (float)ScreenWidth() - 1;
 
-            //this will range between 0 and FOV
-            //float rayAngleOffset = ((float)x / (float)ScreenWidth()) * FOV;
-            //float rayAngle = rayStart + rayAngleOffset;
-
             //raycast vector
-            //float vectorX = std::sinf(rayAngle); //this causes fisheye lens, but the code under here does not. How?
-            //float vectorY = std::cosf(rayAngle);
             float vectorX = dirX + perpX * cameraX;
             float vectorY = dirY + perpY * cameraX;
 
@@ -238,31 +231,6 @@ protected:
                 if (map[mapY * mapWidth + mapX] == '#')
                 {
                     hitWall = true;
-
-                    //float blockMidX = (float)mapX + 0.5f;
-                    //float blockMidY = (float)mapY + 0.5f;
-
-                    ////exact collision points
-                    //float testPointX = playerX + sideDistX;
-                    //float testPointY = playerY + sideDistY;
-
-                    //float testAngle = atan2((testPointY - blockMidY), (testPointX - blockMidX)); //? needs some more research
-                    //if (testAngle >= -3.14159f * 0.25f && testAngle < 3.14159f * 0.25f) //check which quadrant we landed in, depends which axis to use for sampling
-                    //{
-                    //    sampleX = testPointY - (float)mapY;
-                    //}
-                    //if (testAngle >= 3.14159f * 0.25f && testAngle < 3.14159f * 0.75f)
-                    //{
-                    //    sampleX = testPointX - (float)mapX;
-                    //}
-                    //if (testAngle < -3.14159f * 0.25f && testAngle >= -3.14159f * 0.75f)
-                    //{
-                    //    sampleX = testPointX - (float)mapX;
-                    //}
-                    //if (testAngle >= 3.14159f * 0.75f || testAngle < -3.14159f * 0.75f)
-                    //{
-                    //    sampleX = testPointY - (float)mapY;
-                    //}
                 }
             }
 
@@ -286,11 +254,6 @@ protected:
             int floor = lineheight / 2 + ScreenHeight() / 2;
             if (floor >= ScreenHeight()) floor = ScreenHeight() - 1;
 
-            //calculate the distance from the ceiling to the floor based on raycast distance
-            //these points represent for this column where the wall starts, from ceiling to floor
-            //int ceiling = (float)(ScreenHeight() / 2.0) - ScreenHeight() / ((float)perpWallDist);
-            //int floor = ScreenHeight() - ceiling;
-
             float wallX; //sample coordinate for texture, normalized
             if (side == 0) //use y-coordinate
             {
@@ -303,20 +266,20 @@ protected:
 
             wallX -= std::floor(wallX);
 
-            int texX = (int)(wallX * (float)spriteWall->nWidth);
+            float texX = wallX;
             if (side == 0 && vectorX > 0)
             {
-                texX = spriteWall->nWidth - texX - 1;
+                texX = 1 - texX;
             }
             if (side == 1 && vectorY < 0)
             {
-                texX = spriteWall->nWidth - texX - 1;
+                texX = 1 - texX;
             }
 
             //update depth buffer
             depthBuffer[x] = perpWallDist;
 
-            float step = 1.0f * spriteWall->nHeight / lineheight;
+            float step = 1.0f / lineheight;
             float texPos = (ceiling - ScreenHeight() / 2 + lineheight / 2) * step;
 
             for (int y = 0; y < ScreenHeight(); y++)
@@ -329,21 +292,12 @@ protected:
                 {
                     if (perpWallDist < maxDepth)
                     {
-                        //float texY = ((float)y - ceiling) / ((float)floor - (float)ceiling);
-                        int texY = (int)texPos & (spriteWall->nHeight - 1);
+                        float texY = texPos;
                         texPos += step;
 
-                        Draw(x, y, spriteWall->SampleGlyph((float)texX / spriteWall->nWidth, (float)texY / spriteWall->nHeight), spriteWall->SampleColour((float)texX / spriteWall->nWidth, (float)texY / spriteWall->nHeight));
-                        //if (side == 1)
-                        //{
-                        //    Draw(x, y, PIXEL_SOLID, FG_BLUE);
-                        //}
-                        //else
-                        //{
-                        //    Draw(x, y, PIXEL_SOLID, FG_DARK_BLUE);
-                        //}
+                        Draw(x, y, spriteWall->SampleGlyph(texX, texY), spriteWall->SampleColour(texX, texY));
                     }
-                    else
+                    else //floor
                     {
                         Draw(x, y, PIXEL_SOLID, 0);
                     }
@@ -452,7 +406,7 @@ public:
 int main()
 {
     OneLoneCoder_UltimateFPS game;
-    game.ConstructConsole(320, 240, 4, 4);
+    game.ConstructConsole(320, 200, 4, 4);
     game.Start();
 
     return 0;

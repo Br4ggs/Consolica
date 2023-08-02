@@ -800,7 +800,7 @@ public:
 	~olcConsoleGameEngine()
 	{
 		SetConsoleActiveScreenBuffer(m_hOriginalConsole);
-		delete[] m_bufScreen;
+		//delete[] m_bufScreen;
 	}
 
 public:

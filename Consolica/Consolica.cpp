@@ -27,6 +27,8 @@ private:
     float maxDepth = 9.0f;
     float walkSpeed = 5.0f;
 
+    int oldMousePos = 0;
+
     std::wstring map;
     olcSprite* spriteWall;
     olcSprite* spriteLamp;
@@ -46,9 +48,43 @@ private:
 
     std::list<Object> listObjects;
 
+    bool running = true;
+
 protected:
     virtual bool OnUserCreate()
     {
+        //HWND window;
+        //RECT rect;
+
+        //window = GetActiveWindow();
+
+        //GetClientRect(window, &rect);
+
+        //POINT ul;
+        //ul.x = rect.left;
+        //ul.y = rect.top;
+
+        //POINT lr;
+        //lr.x = rect.right;
+        //lr.y = rect.bottom;
+
+        //MapWindowPoints(window, HWND_DESKTOP, &ul, 1);
+        //MapWindowPoints(window, HWND_DESKTOP, &lr, 1);
+
+        //rect.left = ul.x;
+        //rect.top = ul.y;
+
+        //rect.right = lr.x;
+        //rect.bottom = lr.y;
+
+        ////SetCapture(window);
+
+        //ClipCursor(&rect);
+
+        //SetCursorPos(50, 50);
+
+        //ShowCursor(false);
+
         map += L"################";
         map += L"#..............#";
         map += L"#.##.#.#.#.#.#.#";
@@ -82,11 +118,11 @@ protected:
     virtual bool OnUserUpdate(float fElapsedTime)
     {
         //player input
-        if (m_keys[L'A'].bHeld)
+        if (m_keys[L'I'].bHeld)
         {
             playerA -= 1.0f * fElapsedTime;
         }
-        if (m_keys[L'D'].bHeld)
+        if (m_keys[L'P'].bHeld)
         {
             playerA += 1.0f * fElapsedTime;
         }
@@ -116,7 +152,7 @@ protected:
         }
 
         //strafing
-        if (m_keys[L'E'].bHeld)
+        if (m_keys[L'D'].bHeld)
         {
             playerX += cosf(playerA) * walkSpeed * fElapsedTime; //shouldn't these be the other way around?
             playerY -= sinf(playerA) * walkSpeed * fElapsedTime;
@@ -128,7 +164,7 @@ protected:
             }
         }
 
-        if (m_keys[L'Q'].bHeld)
+        if (m_keys[L'A'].bHeld)
         {
             playerX -= cosf(playerA) * walkSpeed * fElapsedTime;
             playerY += sinf(playerA) * walkSpeed * fElapsedTime;
@@ -139,6 +175,21 @@ protected:
                 playerY -= sinf(playerA) * walkSpeed * fElapsedTime;
             }
         }
+
+        //exit
+        if (m_keys[VK_ESCAPE].bPressed)
+        {
+            running = false;
+        }
+
+        //mouse input
+        //int delta = m_mousePosX - oldMousePos;
+
+        ////SetCursorPos(500, 500);
+
+        //oldMousePos = m_mousePosX;
+        //
+        //playerA += (float)delta * 0.01f;
         //...
 
         //fire bullets
@@ -393,7 +444,7 @@ protected:
         //swprintf_s(screen, 40, L"X=%3.2f, Y=%3.2f, A=%3.2f FPS=%3.2f ", playerX, playerY, playerA, 1.0f / deltaTime);
         //...
 
-        return true;
+        return running;
     }
 
 public:

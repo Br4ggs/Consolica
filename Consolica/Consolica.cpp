@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <string>
 
+#include <Windows.h>
+
 #include "olcConsoleGameEngine.h"
 
 //TODO:
@@ -49,14 +51,15 @@ private:
     std::list<Object> listObjects;
 
     bool running = true;
+    HWND window;
+    RECT rect;
+    POINT center;
 
 protected:
     virtual bool OnUserCreate()
     {
-        HWND window;
-        RECT rect;
-
         window = GetForegroundWindow();
+        SetCapture(window);
 
         GetClientRect(window, &rect);
 
@@ -77,11 +80,12 @@ protected:
         rect.right = lr.x;
         rect.bottom = lr.y;
 
-        ////SetCapture(window);
+        center.x = rect.left + (rect.right - rect.left) * 0.5f;
+        center.y = rect.top + (rect.bottom - rect.top) * 0.5f;
 
         ClipCursor(&rect);
-
-        //ShowCursor(false);
+        ShowCursor(false);
+        SetCursor(NULL);
 
         map += L"################";
         map += L"#..............#";
@@ -182,14 +186,17 @@ protected:
         }
 
         //mouse input
-        int delta = m_mousePosX - oldMousePos;
+        POINT cursor;
+        GetCursorPos(&cursor);
 
-        //SetCursorPos(50, 50);
-        ////SetCursorPos(500, 500);
+        int delta = cursor.x - center.x;
 
-        oldMousePos = m_mousePosX;
+        playerA += (float)delta * 0.0025f;
+        //TODO: figure out how to hide cursor
+        //or: alternatively, make it transparent
+
+        SetCursorPos(center.x, center.y);
         
-        playerA += (float)delta * 0.01f;
         //...
 
         //fire bullets

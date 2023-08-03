@@ -4,12 +4,13 @@
 #include <algorithm>
 #include <string>
 
+#include <Windows.h>
+
 #include "olcConsoleGameEngine.h"
 
 //TODO:
-//-update sprite code to something more generic (use png image format)
-//-floor/ceiling texturing
 //-redo object rendering
+//-update sprite code to something more generic (use png image format)
 //-research some of the less understandable math in program
 //-scale down tile size for a higher resolution map
 
@@ -23,7 +24,7 @@ private:
     float playerY = 7.5f;
     float playerA = 0.0f;
     float FOV = 3.14159 / 4.0;
-    float maxDepth = 9.0f;
+    float maxDepth = 12.0f;
     float walkSpeed = 5.0f;
 
     int oldMousePos = 0;
@@ -228,6 +229,8 @@ protected:
 
         float perpX = std::sinf(playerA + (3.14159f * 0.5f));
         float perpY = std::cosf(playerA + (3.14159f * 0.5f));
+    
+        float posZ = 0.5f * ScreenHeight();
 
         //render the floor and ceiling
         for (int y = 0; y < ScreenHeight(); y++)
@@ -239,8 +242,6 @@ protected:
 
             int p = y - ScreenHeight() * 0.5f;
 
-            float posZ = 0.5f * ScreenHeight();
-
             float rowDistance = posZ / p;
 
             float floorStepX = rowDistance * (vector2X - vector1X) / (float)ScreenWidth();
@@ -251,17 +252,24 @@ protected:
 
             for (int x = 0; x < ScreenWidth(); x++)
             {
-                int cellX = (int)floorX;
-                int cellY = (int)floorY;
+                float tx = floorX - std::floor(floorX);
+                float ty = floorY - std::floor(floorY);
 
-                Draw(x, y, spriteWall->SampleGlyph(floorX - cellX, floorY - cellY), spriteWall->SampleColour(floorX - cellX, floorY - cellY) + 1);
-                Draw(x, ScreenHeight() - y - 1, spriteWall->SampleGlyph(floorX - cellX, floorY - cellY), spriteWall->SampleColour(floorX - cellX, floorY - cellY) + 2);
+                if (y > posZ)
+                {
+                    Draw(x, y, spriteWall->SampleGlyph(tx, ty), spriteWall->SampleColour(tx, ty) + 2);
+                }
+                else
+                {
+                    Draw(x, y, spriteWall->SampleGlyph(tx, ty), spriteWall->SampleColour(tx, ty) + 1);
+                }
 
                 floorX += floorStepX;
                 floorY += floorStepY;
             }
         }
 
+        //render the walls
         for (int x = 0; x < ScreenWidth(); x++)
         {
             float cameraX = 2 * x / (float)ScreenWidth() - 1;
@@ -378,19 +386,19 @@ protected:
 
             float step = 1.0f / lineheight;
             float texPos = (ceiling - ScreenHeight() * 0.5f + lineheight * 0.5f) * step;
-
+            //BUGBUG: without 0.03 offset this clips off the top part of the texture
+            texPos += 0.03f;
             for (int y = ceiling; y <= floor; y++)
             {
                 if (perpWallDist < maxDepth)
                 {
                     float texY = texPos;
-                    texPos += step;
-
                     Draw(x, y, spriteWall->SampleGlyph(texX, texY), spriteWall->SampleColour(texX, texY));
+                    texPos += step;
                 }
-                else //darkness
+                else //primarily doing this to prevent any weird rendering due to rounding errors from far distances
                 {
-                    Draw(x, y, PIXEL_SOLID, 0);
+                    Draw(x, y, PIXEL_SOLID, FG_BLACK);
                 }
             }
         }

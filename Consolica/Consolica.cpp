@@ -229,6 +229,39 @@ protected:
         float perpX = std::sinf(playerA + (3.14159f * 0.5f));
         float perpY = std::cosf(playerA + (3.14159f * 0.5f));
 
+        //render the floor and ceiling
+        for (int y = 0; y < ScreenHeight(); y++)
+        {
+            float vector1X = dirX - perpX;
+            float vector1Y = dirY - perpY;
+            float vector2X = dirX + perpX;
+            float vector2Y = dirY + perpY;
+
+            int p = y - ScreenHeight() * 0.5f;
+
+            float posZ = 0.5f * ScreenHeight();
+
+            float rowDistance = posZ / p;
+
+            float floorStepX = rowDistance * (vector2X - vector1X) / (float)ScreenWidth();
+            float floorStepY = rowDistance * (vector2Y - vector1Y) / (float)ScreenWidth();
+
+            float floorX = playerX + rowDistance * vector1X;
+            float floorY = playerY + rowDistance * vector1Y;
+
+            for (int x = 0; x < ScreenWidth(); x++)
+            {
+                int cellX = (int)floorX;
+                int cellY = (int)floorY;
+
+                Draw(x, y, spriteWall->SampleGlyph(floorX - cellX, floorY - cellY), spriteWall->SampleColour(floorX - cellX, floorY - cellY) + 1);
+                Draw(x, ScreenHeight() - y - 1, spriteWall->SampleGlyph(floorX - cellX, floorY - cellY), spriteWall->SampleColour(floorX - cellX, floorY - cellY) + 2);
+
+                floorX += floorStepX;
+                floorY += floorStepY;
+            }
+        }
+
         for (int x = 0; x < ScreenWidth(); x++)
         {
             float cameraX = 2 * x / (float)ScreenWidth() - 1;
@@ -346,29 +379,18 @@ protected:
             float step = 1.0f / lineheight;
             float texPos = (ceiling - ScreenHeight() * 0.5f + lineheight * 0.5f) * step;
 
-            for (int y = 0; y < ScreenHeight(); y++)
+            for (int y = ceiling; y <= floor; y++)
             {
-                if (y < ceiling) //ceiling
+                if (perpWallDist < maxDepth)
                 {
-                    Draw(x, y, L' ');
-                }
-                else if (y >= ceiling && y <= floor) //wall
-                {
-                    if (perpWallDist < maxDepth)
-                    {
-                        float texY = texPos;
-                        texPos += step;
+                    float texY = texPos;
+                    texPos += step;
 
-                        Draw(x, y, spriteWall->SampleGlyph(texX, texY), spriteWall->SampleColour(texX, texY));
-                    }
-                    else //floor
-                    {
-                        Draw(x, y, PIXEL_SOLID, 0);
-                    }
+                    Draw(x, y, spriteWall->SampleGlyph(texX, texY), spriteWall->SampleColour(texX, texY));
                 }
-                else //ground
+                else //darkness
                 {
-                    Draw(x, y, PIXEL_SOLID, FG_DARK_GREEN);
+                    Draw(x, y, PIXEL_SOLID, 0);
                 }
             }
         }
@@ -443,14 +465,14 @@ protected:
         listObjects.remove_if([](Object& o) {return o.remove; });
 
         //display map
-        for (int mx = 0; mx < mapWidth; mx++)
-        {
-            for (int my = 0; my < mapHeight; my++)
-            {
-                Draw(mx + 1, my + 1, map[(mapHeight - my - 1) * mapWidth + mx]);
-            }
-        }
-        Draw(1 + (int)playerX, 1 + (int)playerY, L'P');
+        //for (int mx = 0; mx < mapWidth; mx++)
+        //{
+        //    for (int my = 0; my < mapHeight; my++)
+        //    {
+        //        Draw(mx + 1, my + 1, map[(mapHeight - my - 1) * mapWidth + mx]);
+        //    }
+        //}
+        //Draw(1 + (int)playerX, 1 + (int)playerY, L'P');
         //...
 
         //stats

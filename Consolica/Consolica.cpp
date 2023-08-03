@@ -57,11 +57,18 @@ private:
 protected:
     virtual bool OnUserCreate()
     {
+        //get currently active forground window (the console) and center it on screen
         window = GetForegroundWindow();
-        SetCapture(window);
 
+        SetCapture(window);
         GetClientRect(window, &rect);
 
+        int xPos = (GetSystemMetrics(SM_CXSCREEN) - rect.right) / 2;
+        int yPos = (GetSystemMetrics(SM_CYSCREEN) - rect.bottom) / 2;
+
+        SetWindowPos(window, 0, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+
+        //clip cursor to inside of window area
         POINT ul;
         ul.x = rect.left;
         ul.y = rect.top;

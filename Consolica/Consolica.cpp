@@ -4,8 +4,6 @@
 #include <algorithm>
 #include <string>
 
-#include <Windows.h>
-
 #include "olcConsoleGameEngine.h"
 
 //TODO:
@@ -13,7 +11,6 @@
 //-floor/ceiling texturing
 //-redo object rendering
 //-research some of the less understandable math in program
-//-mouse input
 //-scale down tile size for a higher resolution map
 
 class OneLoneCoder_UltimateFPS : public olcConsoleGameEngine
@@ -51,6 +48,8 @@ private:
     std::list<Object> listObjects;
 
     bool running = true;
+
+    //required for keeping cursor in center of window
     HWND window;
     RECT rect;
     POINT center;
@@ -84,8 +83,12 @@ protected:
         center.y = rect.top + (rect.bottom - rect.top) * 0.5f;
 
         ClipCursor(&rect);
-        ShowCursor(false);
-        SetCursor(NULL);
+
+        //TODO: figure out how to hide cursor
+        //or: alternatively, make it transparent
+        //EDIT: due to the way olcConsoleGameEngine acquires a console this cannot be done,
+        // since we are not creating the window ourselves we do not have control over it's internal
+        // state like the cursor.
 
         map += L"################";
         map += L"#..............#";
@@ -181,7 +184,6 @@ protected:
         //exit
         if (m_keys[VK_ESCAPE].bPressed)
         {
-            ClipCursor(NULL);
             running = false;
         }
 
@@ -190,10 +192,7 @@ protected:
         GetCursorPos(&cursor);
 
         int delta = cursor.x - center.x;
-
         playerA += (float)delta * 0.0025f;
-        //TODO: figure out how to hide cursor
-        //or: alternatively, make it transparent
 
         SetCursorPos(center.x, center.y);
         
@@ -441,7 +440,7 @@ protected:
         {
             for (int my = 0; my < mapHeight; my++)
             {
-                Draw(mx + 1, my + 1, map[my * mapWidth + mx]);
+                Draw(mx + 1, my + 1, map[(mapHeight - my - 1) * mapWidth + mx]);
             }
         }
         Draw(1 + (int)playerX, 1 + (int)playerY, L'P');
@@ -452,6 +451,13 @@ protected:
         //...
 
         return running;
+    }
+
+    virtual bool OnUserDestroy()
+    {
+        ClipCursor(NULL);
+
+        return true;
     }
 
 public:

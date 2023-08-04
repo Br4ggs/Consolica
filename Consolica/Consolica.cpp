@@ -14,6 +14,24 @@
 //-research some of the less understandable math in program
 //-scale down tile size for a higher resolution map
 
+void sortSprites(std::vector<int> &order, std::vector<float> &distance, int count)
+{
+    std::vector<std::pair<double, int>> sprites(count);
+    for (int i = 0; i < count; i++)
+    {
+        sprites[i].first = distance[i];
+        sprites[i].second = order[i];
+    }
+
+    std::sort(sprites.begin(), sprites.end());
+
+    for (int i = 0; i < count; i++)
+    {
+        distance[i] = sprites[count - i - 1].first;
+        order[i] = sprites[count - i - 1].second;
+    }
+}
+
 class OneLoneCoder_UltimateFPS : public olcConsoleGameEngine
 {
 private:
@@ -46,7 +64,7 @@ private:
         olcSprite* sprite;
     };
 
-    std::list<Object> listObjects;
+    std::vector<Object> objects;
 
     bool running = true;
 
@@ -121,7 +139,7 @@ protected:
 
         depthBuffer = new float[ScreenWidth()];
 
-        listObjects = {
+        objects = {
             {7, 7, 0.0f, 0.0f, false, spriteLamp}
         };
 
@@ -207,20 +225,20 @@ protected:
         //...
 
         //fire bullets
-        if (m_keys[VK_SPACE].bReleased)
-        {
-            Object o;
-            o.x = playerX;
-            o.y = playerY;
+        //if (m_keys[VK_SPACE].bReleased)
+        //{
+        //    Object o;
+        //    o.x = playerX;
+        //    o.y = playerY;
 
-            float noise = (((float)rand() / (float)RAND_MAX) - 0.5f) * 0.1f;
-            o.velocityX = sinf(playerA + noise) * 8.0f;
-            o.velocityY = cosf(playerA + noise) * 8.0f;
+        //    float noise = (((float)rand() / (float)RAND_MAX) - 0.5f) * 0.1f;
+        //    o.velocityX = sinf(playerA + noise) * 8.0f;
+        //    o.velocityY = cosf(playerA + noise) * 8.0f;
 
-            o.sprite = spriteFireBall;
-            o.remove = false;
-            listObjects.push_back(o);
-        }
+        //    o.sprite = spriteFireBall;
+        //    o.remove = false;
+        //    listObjects.push_back(o);
+        //}
         //...
 
         //rendering
@@ -405,72 +423,87 @@ protected:
         //...
 
         //Update & Draw Objects
-        for (auto& object : listObjects)
+        std::vector<int> objectOrder;
+        std::vector<float> objectDistance;
+
+        int i = 0;
+        for (int i = 0; i < objects.size; i++)
         {
-            //update object physics
-            object.x += object.velocityX * fElapsedTime;
-            object.y += object.velocityY * fElapsedTime;
-
-            //check if object is inside wall, if so, set flag for removal
-            if (map.c_str()[(int)object.x * mapWidth + (int)object.y] == '#')
-            {
-                object.remove = true;
-            }
-
-            //is object within distance?
-            float vecX = object.x - playerX;
-            float vecY = object.y - playerY;
-            float distanceFromPlayer = sqrt(vecX * vecX + vecY * vecY);
-
-            float eyeX = sinf(playerA);
-            float eyeY = cosf(playerA);
-            float objectAngle = atan2f(eyeY, eyeX) - atan2f(vecY, vecX);
-            if (objectAngle < -3.14159f) //make sure angle lies between 0 and +-2*pi?
-            {
-                objectAngle += 2.0f * 3.14159f;
-            }
-            if (objectAngle > 3.14159f)
-            {
-                objectAngle -= 2.0f * 3.14159f;
-            }
-
-            bool inPlayerFOV = fabs(objectAngle) < FOV / 2.0f;
-
-            if (inPlayerFOV && distanceFromPlayer >= 0.5f && distanceFromPlayer < maxDepth)
-            {
-                float objectCeiling = (float)(ScreenHeight() / 2.0) - ScreenHeight() / ((float)distanceFromPlayer);
-                float objectFloor = ScreenHeight() - objectCeiling;
-                float objectHeight = objectFloor - objectCeiling;
-                float objectAspectRatio = (float)object.sprite->nHeight / (float)object.sprite->nWidth;
-                float objectWidth = objectHeight / objectAspectRatio;
-
-                float middleOfObject = (0.5f * (objectAngle / (FOV / 2.0f)) + 0.5f) * (float)ScreenWidth(); //?
-
-                for (float x = 0; x < objectWidth; x++)
-                {
-                    for (float y = 0; y < objectHeight; y++)
-                    {
-                        float sampleX = x / objectWidth;
-                        float sampleY = y / objectHeight;
-
-                        wchar_t c = object.sprite->SampleGlyph(sampleX, sampleY);
-                        int objectColumn = (int)(middleOfObject + x - (objectWidth / 2.0f));
-                        if (objectColumn >= 0 && objectColumn < ScreenWidth())
-                        {
-                            if (c != L' ' && depthBuffer[objectColumn] >= distanceFromPlayer)
-                            {
-                                Draw(objectColumn, objectCeiling + y, c, object.sprite->SampleColour(sampleX, sampleY));
-                                depthBuffer[objectColumn] = distanceFromPlayer;
-                            }
-                        }
-                    }
-                }
-            }
+            objectOrder.push_back(i);
+            objectDistance.push_back((playerX - objects[i].x)* (playerX - objects[i].x) + (playerY - objects[i].y) * (playerY - objects[i].y));
         }
+
+        //order objectorder
+        sortSprites(objectOrder, objectDistance, objects.size);
+
+        //TODO
+
+        //for (auto& object : listObjects)
+        //{
+        //    //update object physics
+        //    object.x += object.velocityX * fElapsedTime;
+        //    object.y += object.velocityY * fElapsedTime;
+
+        //    //check if object is inside wall, if so, set flag for removal
+        //    if (map.c_str()[(int)object.x * mapWidth + (int)object.y] == '#')
+        //    {
+        //        object.remove = true;
+        //    }
+
+        //    //is object within distance?
+        //    float vecX = object.x - playerX;
+        //    float vecY = object.y - playerY;
+        //    float distanceFromPlayer = sqrt(vecX * vecX + vecY * vecY);
+
+        //    float eyeX = sinf(playerA);
+        //    float eyeY = cosf(playerA);
+        //    float objectAngle = atan2f(eyeY, eyeX) - atan2f(vecY, vecX);
+        //    if (objectAngle < -3.14159f) //make sure angle lies between 0 and +-2*pi?
+        //    {
+        //        objectAngle += 2.0f * 3.14159f;
+        //    }
+        //    if (objectAngle > 3.14159f)
+        //    {
+        //        objectAngle -= 2.0f * 3.14159f;
+        //    }
+
+        //    bool inPlayerFOV = fabs(objectAngle) < FOV / 2.0f;
+
+        //    if (inPlayerFOV && distanceFromPlayer >= 0.5f && distanceFromPlayer < maxDepth)
+        //    {
+        //        float objectCeiling = (float)(ScreenHeight() / 2.0) - ScreenHeight() / ((float)distanceFromPlayer);
+        //        float objectFloor = ScreenHeight() - objectCeiling;
+        //        float objectHeight = objectFloor - objectCeiling;
+        //        float objectAspectRatio = (float)object.sprite->nHeight / (float)object.sprite->nWidth;
+        //        float objectWidth = objectHeight / objectAspectRatio;
+
+        //        float middleOfObject = (0.5f * (objectAngle / (FOV / 2.0f)) + 0.5f) * (float)ScreenWidth(); //?
+
+        //        for (float x = 0; x < objectWidth; x++)
+        //        {
+        //            for (float y = 0; y < objectHeight; y++)
+        //            {
+        //                float sampleX = x / objectWidth;
+        //                float sampleY = y / objectHeight;
+
+        //                wchar_t c = object.sprite->SampleGlyph(sampleX, sampleY);
+        //                int objectColumn = (int)(middleOfObject + x - (objectWidth / 2.0f));
+        //                if (objectColumn >= 0 && objectColumn < ScreenWidth())
+        //                {
+        //                    if (c != L' ' && depthBuffer[objectColumn] >= distanceFromPlayer)
+        //                    {
+        //                        Draw(objectColumn, objectCeiling + y, c, object.sprite->SampleColour(sampleX, sampleY));
+        //                        depthBuffer[objectColumn] = distanceFromPlayer;
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
         //...
 
         //remove dead objects from object list
-        listObjects.remove_if([](Object& o) {return o.remove; });
+        //listObjects.remove_if([](Object& o) {return o.remove; });
 
         //display map
         //for (int mx = 0; mx < mapWidth; mx++)

@@ -140,7 +140,7 @@ protected:
         depthBuffer = new float[ScreenWidth()];
 
         objects = {
-            {7, 7, 0.0f, 0.0f, false, spriteLamp}
+            {5, 5, 0.0f, 0.0f, false, spriteLamp}
         };
 
         return true;
@@ -427,14 +427,64 @@ protected:
         std::vector<float> objectDistance;
 
         int i = 0;
-        for (int i = 0; i < objects.size; i++)
+        for (int i = 0; i < objects.size(); i++)
         {
             objectOrder.push_back(i);
             objectDistance.push_back((playerX - objects[i].x)* (playerX - objects[i].x) + (playerY - objects[i].y) * (playerY - objects[i].y));
         }
 
         //order objectorder
-        sortSprites(objectOrder, objectDistance, objects.size);
+        sortSprites(objectOrder, objectDistance, objects.size());
+
+        for (int i = 0; i < objects.size(); i++)
+        {
+            olcSprite *sprite = objects[objectOrder[i]].sprite;
+
+            float objectX = objects[objectOrder[i]].x - playerX;
+            float objectY = objects[objectOrder[i]].y - playerY;
+
+            //inverse determinant is 1 / determinant of matrix
+            float invDeterminant = 1 / (perpX * dirY - dirX * perpY);
+
+            //this is the multiplication between the object vector (objectX/objectY) and the inverse matrix for the camera plane:
+            //determinant * matrix * vector <- in that order, remember is important for matrix multiplication
+            float transformX = invDeterminant * (dirY * objectX - dirX * objectY);
+            float transformY = invDeterminant * (-perpY * objectX + perpX * objectY); //acts as the z-depth inside the screen?
+
+            int spriteScreenX = int((ScreenWidth() / 2) * (1 + transformX / transformY));
+
+            //calculate sprite height on screen
+            int spriteHeight = std::abs(int(ScreenHeight() / transformY)); //we use transformY here instead of the real distance to prevent the fisheye effect
+            int drawStartY = -spriteHeight / 2 + ScreenHeight() / 2;
+            if (drawStartY < 0) drawStartY = 0;
+            int drawEndY = spriteHeight / 2 + ScreenHeight() / 2;
+            if (drawEndY >= ScreenHeight()) drawEndY = ScreenHeight() - 1;
+
+            //calculate sprite width on screen
+            int spriteWidth = std::abs(int(ScreenWidth() / transformY)); //why Y here?
+            int drawStartX = -spriteWidth / 2 + spriteScreenX;
+            if (drawStartX < 0) drawStartX = 0;
+            int drawEndX = spriteWidth / 2 + spriteScreenX;
+            if (drawEndX >= ScreenWidth()) drawEndX = ScreenWidth() - 1;
+
+            for (int stripe = drawStartX; stripe < drawEndX; stripe++)
+            {
+                float texX = int(256 * (stripe - (-spriteWidth / 2 + spriteScreenX)) * sprite->nWidth / spriteWidth) / 256;
+
+                if (transformY > 0 && stripe > 0 && stripe < ScreenWidth() && transformY < depthBuffer[stripe])
+                {
+                    for (int y = drawStartY; y < drawEndY; y++)
+                    {
+                        int d = y * 256 - ScreenHeight() * 128 + spriteHeight * 128; //256 and 128 factors to avoid floats
+                        float texY = ((d * sprite->nHeight) / spriteHeight) / 256;
+                        if (sprite->SampleColour(texX / sprite->nWidth, texY / sprite->nHeight) != FG_BLACK)
+                        {
+                            Draw(stripe, y, sprite->SampleGlyph(texX / sprite->nWidth, texY / sprite->nHeight), sprite->SampleColour(texX / sprite->nWidth, texY / sprite->nHeight));
+                        }
+                    }
+                }
+            }
+        }
 
         //TODO
 

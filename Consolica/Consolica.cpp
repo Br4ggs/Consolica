@@ -140,7 +140,9 @@ protected:
         depthBuffer = new float[ScreenWidth()];
 
         objects = {
-            {5, 5, 0.0f, 0.0f, false, spriteLamp}
+            {5, 5, 0.0f, 0.0f, false, spriteLamp},
+            {5, 6, 0.0f, 0.0f, false, spriteLamp},
+            {4.5, 7.5f, 0.0f, 0.0f, false, spriteLamp},
         };
 
         return true;
@@ -460,8 +462,11 @@ protected:
             int drawEndY = spriteHeight / 2 + ScreenHeight() / 2;
             if (drawEndY >= ScreenHeight()) drawEndY = ScreenHeight() - 1;
 
+            float objectAspectRatio = (float)sprite->nWidth / (float)sprite->nHeight;
+
             //calculate sprite width on screen
-            int spriteWidth = std::abs(int(ScreenWidth() / transformY)); //why Y here?
+            //int spriteWidth = std::abs(int(ScreenWidth() / transformY)); //why Y here?
+            int spriteWidth = spriteHeight * objectAspectRatio;
             int drawStartX = -spriteWidth / 2 + spriteScreenX;
             if (drawStartX < 0) drawStartX = 0;
             int drawEndX = spriteWidth / 2 + spriteScreenX;
